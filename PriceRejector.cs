@@ -68,10 +68,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 				ShowUB							= true;
 				AlertColorBull					= Brushes.DodgerBlue;
 				AlertColorBear					= Brushes.Red;
+				AInt							= 30;
 			}
 			else if (State == State.Configure)
 			{
 				ClearOutputWindow();
+				AddVolumetric("ES 03-21", BarsPeriodType.Minute, AInt, VolumetricDeltaType.BidAsk, 1);
 			}
 			else if (State == State.DataLoaded)
 			{				
@@ -85,6 +87,10 @@ namespace NinjaTrader.NinjaScript.Indicators
           		return;
 			 if (CurrentBar < 10 ) { return; }
 
+			 // Ignore bar update events for the supplementary - Bars object added above
+		    if (BarsInProgress == 1 ) {
+		        
+	
 			 if ( ShowExhaustion ) 
 			 if (High[0] > Bollinger1.Upper[0] || Low[0] <= Bollinger1.Lower[0])
 			{
@@ -107,7 +113,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 	        {
 	         
 				/// loop thru bar prices and fill up Struct
-				Print("Bar: " + CurrentBar + "\t" + Time[0] + " \trange: " + NumPrices);
+				//Print("Bar: " + CurrentBar + "\t" + Time[0] + " \trange: " + NumPrices);
 				for (int index = 0; index <= NumPrices; index++)
 				{
 					double thisPrice = High[0] - (index * TickSize);
@@ -193,7 +199,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 
 	        }
 	        catch{}
-
+			}
 		}
 
 		#region Properties
@@ -242,6 +248,13 @@ namespace NinjaTrader.NinjaScript.Indicators
 			get { return Serialize.BrushToString(AlertColorBear); }
 			set { AlertColorBear = Serialize.StringToBrush(value); }
 		}			
+		
+		[NinjaScriptProperty]
+		[Range(1, int.MaxValue)]
+		[Display(Name="Time Series Minutes", Order=3, GroupName="Parameters")]
+		public int AInt
+		{ get; set; }
+		
 		#endregion
 
 	}
@@ -254,18 +267,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
 		private PriceRejector[] cachePriceRejector;
-		public PriceRejector PriceRejector(bool showPriceRejector, bool showAbsorbtion, bool showExhaustion, bool showUB, Brush alertColorBull, Brush alertColorBear)
+		public PriceRejector PriceRejector(bool showPriceRejector, bool showAbsorbtion, bool showExhaustion, bool showUB, Brush alertColorBull, Brush alertColorBear, int aInt)
 		{
-			return PriceRejector(Input, showPriceRejector, showAbsorbtion, showExhaustion, showUB, alertColorBull, alertColorBear);
+			return PriceRejector(Input, showPriceRejector, showAbsorbtion, showExhaustion, showUB, alertColorBull, alertColorBear, aInt);
 		}
 
-		public PriceRejector PriceRejector(ISeries<double> input, bool showPriceRejector, bool showAbsorbtion, bool showExhaustion, bool showUB, Brush alertColorBull, Brush alertColorBear)
+		public PriceRejector PriceRejector(ISeries<double> input, bool showPriceRejector, bool showAbsorbtion, bool showExhaustion, bool showUB, Brush alertColorBull, Brush alertColorBear, int aInt)
 		{
 			if (cachePriceRejector != null)
 				for (int idx = 0; idx < cachePriceRejector.Length; idx++)
-					if (cachePriceRejector[idx] != null && cachePriceRejector[idx].ShowPriceRejector == showPriceRejector && cachePriceRejector[idx].ShowAbsorbtion == showAbsorbtion && cachePriceRejector[idx].ShowExhaustion == showExhaustion && cachePriceRejector[idx].ShowUB == showUB && cachePriceRejector[idx].AlertColorBull == alertColorBull && cachePriceRejector[idx].AlertColorBear == alertColorBear && cachePriceRejector[idx].EqualsInput(input))
+					if (cachePriceRejector[idx] != null && cachePriceRejector[idx].ShowPriceRejector == showPriceRejector && cachePriceRejector[idx].ShowAbsorbtion == showAbsorbtion && cachePriceRejector[idx].ShowExhaustion == showExhaustion && cachePriceRejector[idx].ShowUB == showUB && cachePriceRejector[idx].AlertColorBull == alertColorBull && cachePriceRejector[idx].AlertColorBear == alertColorBear && cachePriceRejector[idx].AInt == aInt && cachePriceRejector[idx].EqualsInput(input))
 						return cachePriceRejector[idx];
-			return CacheIndicator<PriceRejector>(new PriceRejector(){ ShowPriceRejector = showPriceRejector, ShowAbsorbtion = showAbsorbtion, ShowExhaustion = showExhaustion, ShowUB = showUB, AlertColorBull = alertColorBull, AlertColorBear = alertColorBear }, input, ref cachePriceRejector);
+			return CacheIndicator<PriceRejector>(new PriceRejector(){ ShowPriceRejector = showPriceRejector, ShowAbsorbtion = showAbsorbtion, ShowExhaustion = showExhaustion, ShowUB = showUB, AlertColorBull = alertColorBull, AlertColorBear = alertColorBear, AInt = aInt }, input, ref cachePriceRejector);
 		}
 	}
 }
@@ -274,14 +287,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.PriceRejector PriceRejector(bool showPriceRejector, bool showAbsorbtion, bool showExhaustion, bool showUB, Brush alertColorBull, Brush alertColorBear)
+		public Indicators.PriceRejector PriceRejector(bool showPriceRejector, bool showAbsorbtion, bool showExhaustion, bool showUB, Brush alertColorBull, Brush alertColorBear, int aInt)
 		{
-			return indicator.PriceRejector(Input, showPriceRejector, showAbsorbtion, showExhaustion, showUB, alertColorBull, alertColorBear);
+			return indicator.PriceRejector(Input, showPriceRejector, showAbsorbtion, showExhaustion, showUB, alertColorBull, alertColorBear, aInt);
 		}
 
-		public Indicators.PriceRejector PriceRejector(ISeries<double> input , bool showPriceRejector, bool showAbsorbtion, bool showExhaustion, bool showUB, Brush alertColorBull, Brush alertColorBear)
+		public Indicators.PriceRejector PriceRejector(ISeries<double> input , bool showPriceRejector, bool showAbsorbtion, bool showExhaustion, bool showUB, Brush alertColorBull, Brush alertColorBear, int aInt)
 		{
-			return indicator.PriceRejector(input, showPriceRejector, showAbsorbtion, showExhaustion, showUB, alertColorBull, alertColorBear);
+			return indicator.PriceRejector(input, showPriceRejector, showAbsorbtion, showExhaustion, showUB, alertColorBull, alertColorBear, aInt);
 		}
 	}
 }
@@ -290,14 +303,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.PriceRejector PriceRejector(bool showPriceRejector, bool showAbsorbtion, bool showExhaustion, bool showUB, Brush alertColorBull, Brush alertColorBear)
+		public Indicators.PriceRejector PriceRejector(bool showPriceRejector, bool showAbsorbtion, bool showExhaustion, bool showUB, Brush alertColorBull, Brush alertColorBear, int aInt)
 		{
-			return indicator.PriceRejector(Input, showPriceRejector, showAbsorbtion, showExhaustion, showUB, alertColorBull, alertColorBear);
+			return indicator.PriceRejector(Input, showPriceRejector, showAbsorbtion, showExhaustion, showUB, alertColorBull, alertColorBear, aInt);
 		}
 
-		public Indicators.PriceRejector PriceRejector(ISeries<double> input , bool showPriceRejector, bool showAbsorbtion, bool showExhaustion, bool showUB, Brush alertColorBull, Brush alertColorBear)
+		public Indicators.PriceRejector PriceRejector(ISeries<double> input , bool showPriceRejector, bool showAbsorbtion, bool showExhaustion, bool showUB, Brush alertColorBull, Brush alertColorBear, int aInt)
 		{
-			return indicator.PriceRejector(input, showPriceRejector, showAbsorbtion, showExhaustion, showUB, alertColorBull, alertColorBear);
+			return indicator.PriceRejector(input, showPriceRejector, showAbsorbtion, showExhaustion, showUB, alertColorBull, alertColorBear, aInt);
 		}
 	}
 }
