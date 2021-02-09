@@ -45,6 +45,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private List<BarSlice> FullBar = new List<BarSlice>();
 		private Bollinger Bollinger1;	
 			
+		// dx drawing
+		private System.Windows.Media.Brush	areaBrush;
+		private int							areaOpacity;
+			
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -69,6 +73,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 				AlertColorBull					= Brushes.DodgerBlue;
 				AlertColorBear					= Brushes.Red;
 				AInt							= 30;
+				
+				AreaBrush 				= System.Windows.Media.Brushes.DodgerBlue;
+				
 			}
 			else if (State == State.Configure)
 			{
@@ -136,10 +143,17 @@ namespace NinjaTrader.NinjaScript.Indicators
 					foreach (var item in FullBar) {
 						if (item.delta == maxDelta) {
 							maxDeltaPrice = item.priceLevel;
-							if ( ShowAbsorbtion ) { Draw.Dot(this, "maxDeltaPrice"+CurrentBar, false, 0, maxDeltaPrice, Brushes.DodgerBlue);}
+							if ( ShowAbsorbtion ) { 
+								//Draw.Dot(this, "maxDeltaPrice"+CurrentBar, false, 0, maxDeltaPrice, Brushes.DodgerBlue);
+								Draw.Rectangle(this,  "maxDeltaPrice"+CurrentBar, false, 0, maxDeltaPrice - (TickSize * 1 ), -1, maxDeltaPrice, Brushes.DodgerBlue , Brushes.Transparent, 2);
+							}
 						} else if (item.delta == minDelta) {
 							minDeltaPrice = item.priceLevel;
-							if ( ShowAbsorbtion ) { Draw.Dot(this, "minDeltaPrice"+CurrentBar, false, 0, minDeltaPrice, Brushes.Red);}
+							if ( ShowAbsorbtion ) { 
+								//Draw.Dot(this, "minDeltaPrice"+CurrentBar, false, 0, minDeltaPrice, Brushes.Red);
+								Draw.Rectangle(this,  "minDeltaPrice"+CurrentBar, false, 0, minDeltaPrice - (TickSize * 1 ), -1, minDeltaPrice, Brushes.Red, Brushes.Transparent, 2);
+								//Draw.Rectangle(this, "tag1", false, 10, Low[10] - TickSize, 5, High[5] + TickSize, Brushes.PaleGreen, Brushes.PaleGreen, 2);
+							}
 						}
 					}
 				
@@ -166,7 +180,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 							/// diagonal agression at lowest level
 							/// low bid < low + 1 offer
 							if (FullBar[indexOfLast].bidVolume  < FullBar[indexOfLast - 1].askVolume )  { 
-								if ( ShowPriceRejector) { Draw.Text(this, "RejectorLow"+CurrentBar, "Price Rejector", 0, Low[0] - 1 * TickSize, Brushes.DodgerBlue); }
+								if ( ShowPriceRejector) { 
+									//Draw.Text(this, "RejectorLow"+CurrentBar, "Price Rejector", 0, Low[0] - 1 * TickSize, Brushes.DodgerBlue);
+									Draw.Rectangle(this,  "RejectorLow"+CurrentBar, false, 1, Low[0] - TickSize, -1, Low[0] + (TickSize * 3), Brushes.DodgerBlue, Brushes.Transparent, 1);	
+								}
 							}
 						}
 					}
@@ -191,7 +208,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 							/// diagonal agression at lowest level
 							/// low bid < low + 1 offer
 							if (FullBar[1].bidVolume  > FullBar[0].askVolume )  { 
-								if ( ShowPriceRejector) { Draw.Text(this, "RejectorHigh"+CurrentBar, "Price Rejector", 0, High[0] + 1 * TickSize, Brushes.Red);}
+								if ( ShowPriceRejector) { 
+									//Draw.Text(this, "RejectorHigh"+CurrentBar, "Price Rejector", 0, High[0] + 1 * TickSize, Brushes.Red);
+									Draw.Rectangle(this,  "RejectorHigh"+CurrentBar, false, 1, High[0] -(TickSize * 3), -1, High[0] + TickSize , Brushes.Red, Brushes.Transparent, 1);	
+								}
+								
 							}
 						}
 					}
@@ -202,6 +223,82 @@ namespace NinjaTrader.NinjaScript.Indicators
 			}
 		}
 
+		/// <summary>
+		/// Draw Boxes where Hi vol is, How do I fide Price and time
+		/// </summary>
+//		private void drawHighVol() {
+//			 if (!IsInHitTest)
+//			{
+//				SharpDX.Vector2 startPoint;
+//				SharpDX.Vector2 endPoint;
+//				SharpDX.Direct2D1.Brush areaBrushDx;
+//				areaBrushDx = areaBrush.ToDxBrush(RenderTarget);
+				
+////				startPoint = new SharpDX.Vector2(ChartPanel.X + leadingSpace, halfHeight + spacer);
+////				endPoint = new SharpDX.Vector2(ChartPanel.X + rowSize + leadingSpace, halfHeight + spacer);
+				
+////				drawRow(startPoint: startPoint, endPoint: endPoint, areaBrushDx: areaBrushDx);
+//			}
+//		}
+		
+		/// <summary>
+		/// Draw Boxes where Price Rejector is
+		/// </summary>
+		/// 
+		
+		/// <summary>
+		/// Draw Boxes where Zero prints are
+		/// </summary>
+//		private void drawRow(SharpDX.Vector2 startPoint, SharpDX.Vector2 endPoint, SharpDX.Direct2D1.Brush areaBrushDx) {
+//			RenderTarget.DrawLine(startPoint, endPoint, areaBrushDx, 10);
+//        }
+		
+//		protected override void OnRender(ChartControl chartControl, ChartScale chartScale)
+//		{
+//			  Print("--------------------------------------------------------------------------------------------");
+//			for (int index = ChartBars.FromIndex; index <= ChartBars.ToIndex; index++)
+//			{
+				
+//				// gets the pixel coordinate of the bar index passed to the method - X axis
+//				float xStart = chartControl.GetXByBarIndex(ChartBars, index);
+
+//				// gets the pixel coordinate of the price value passed to the method - Y axis
+//				float yStart = chartScale.GetYByValue(High.GetValueAt(index) + 2 * TickSize);
+
+//				float width = (float)chartControl.BarWidth * 2;
+
+//				Print(ToTime(Time[0]) + " s: " + xStart);
+//				// construct the rectangl eF struct to describe the position and size the drawing
+//				//In order to centrlise the rectangle over the bar, xStart-width/2
+//				SharpDX.RectangleF rect = new SharpDX.RectangleF(xStart-width/2, yStart, width, width);
+
+				
+//				// define the brush used in the rectangle
+//				SharpDX.Direct2D1.SolidColorBrush customDXBrush = new SharpDX.Direct2D1.SolidColorBrush(RenderTarget, SharpDX.Color.Blue);
+
+//				SharpDX.Direct2D1.SolidColorBrush outlineBrush = new SharpDX.Direct2D1.SolidColorBrush(RenderTarget, SharpDX.Color.Black);
+
+//				if (Close[0] > Open[0])
+//				{
+//				// The RenderTarget consists of two commands related to Rectangles.
+//				// The FillRectangle() method is used to "Paint" the area of a Rectangle
+//				// execute the render target fill rectangle with desired values
+//				RenderTarget.FillRectangle(rect, customDXBrush);
+
+//				// and DrawRectangle() is used to "Paint" the outline of a Rectangle
+//				RenderTarget.DrawRectangle(rect, outlineBrush, 1); //Added WH 6/5/2017
+//				}
+
+//				// always dispose of a brush when finished
+//				customDXBrush.Dispose();
+//				outlineBrush.Dispose(); 				
+
+//			}
+//			// Default plotting in base class. Should be left Uncommented if indicators holds at least one plot you want displayed
+//			base.OnRender(chartControl, chartScale);
+//		}
+
+		
 		#region Properties
 		[NinjaScriptProperty]
 		[Display(Name="ShowPriceRejector", Order=1, GroupName="Parameters")]
@@ -255,6 +352,50 @@ namespace NinjaTrader.NinjaScript.Indicators
 		public int AInt
 		{ get; set; }
 		
+		// quick draw dx
+		
+		[XmlIgnore]
+		[Display(ResourceType = typeof(Custom.Resource), Name = "NinjaScriptDrawingToolShapesAreaBrush", GroupName = "NinjaScriptGeneral")]
+		public System.Windows.Media.Brush AreaBrush
+		{
+			get { return areaBrush; }
+			set
+			{
+				areaBrush = value;
+				if (areaBrush != null)
+				{
+					if (areaBrush.IsFrozen)
+						areaBrush = areaBrush.Clone();
+					areaBrush.Opacity = areaOpacity / 100d;
+					areaBrush.Freeze();
+				}
+			}
+		}
+
+		[Browsable(false)]
+		public string AreaBrushSerialize
+		{
+			get { return Serialize.BrushToString(AreaBrush); }
+			set { AreaBrush = Serialize.StringToBrush(value); }
+		}
+		
+		[Range(0, 100)]
+		[Display(ResourceType = typeof(Custom.Resource), Name = "NinjaScriptDrawingToolAreaOpacity", GroupName = "NinjaScriptGeneral")]
+		public int AreaOpacity
+		{
+			get { return areaOpacity; }
+			set
+			{
+				areaOpacity = Math.Max(0, Math.Min(100, value));
+				if (areaBrush != null)
+				{
+					System.Windows.Media.Brush newBrush		= areaBrush.Clone();
+					newBrush.Opacity	= areaOpacity / 100d;
+					newBrush.Freeze();
+					areaBrush			= newBrush;
+				}
+			}
+		}	
 		#endregion
 
 	}
