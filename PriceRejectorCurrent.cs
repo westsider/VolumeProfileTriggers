@@ -83,6 +83,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 		private double volumeAtExtremeHigh = 0.0;
 		private double volumeAtExtremeLow = 0.0;
 		
+		private bool LowTriggered  =true;
+		private bool HighTriggered  =true;
+		
 		protected override void OnStateChange()
 		{
 			if (State == State.SetDefaults)
@@ -109,11 +112,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 				Minutes											= 30;
 				//AreaBrush 									= System.Windows.Media.Brushes.DodgerBlue;
 				Opacity											= 0.2;
+				AString										= "smsAlert2.wav";
 			}
 			else if (State == State.Configure)
 			{
 				ClearOutputWindow();
-				AddVolumetric("ES 03-21", BarsPeriodType.Minute, Minutes, VolumetricDeltaType.BidAsk, 1);
+				AddVolumetric("ES 06-21", BarsPeriodType.Minute, Minutes, VolumetricDeltaType.BidAsk, 1);
 			}
 			else if (State == State.DataLoaded)
 			{				
@@ -203,6 +207,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					RemoveDrawObject("Exhastionh"+CurrentBar);
 					//RemoveDrawObject("Absorbtionh"+lastABhigh);
 					RemoveDrawObject("RejectorHigh"+lastPRhigh);
+					HighTriggered = false;
 				
 				}
 				
@@ -211,6 +216,7 @@ namespace NinjaTrader.NinjaScript.Indicators
 					RemoveDrawObject("Exhastion"+CurrentBar);
 					//RemoveDrawObject("Absorbtion"+lastABLow);
 					RemoveDrawObject("RejectorLow"+lastPRLow);
+					LowTriggered = false;
 				}
 		}
 		
@@ -335,6 +341,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 						if (FullBar[indexOfLast].delta <=0 && FullBar[indexOfLast - 1].delta <=0 && FullBar[indexOfLast - 2].delta <=0  ) { 
 							// diagonal agression at lowest level
 						//	/ low bid < low + 1 offer
+							
+			/// **********************     REJECCTOR LOW *********************
+			
 							if (FullBar[indexOfLast].bidVolume  < FullBar[indexOfLast - 1].askVolume )  { 
 								if ( ShowPriceRejector ) { 
 									RemoveDrawObject("Exhastion"+CurrentBar);
@@ -344,6 +353,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 									Draw.Text(this, "RejectorLow"+Volume[0], message, 0, Low[0] - 2 * TickSize, Brushes.DimGray); 
 									PriceRejector[PriceRejector.Count - 1] = 1;
 									lastPRLow = Volume[0];
+									if ( !LowTriggered)
+										sendAlert( message: "Price Rejector at Low", sound: AString);
+									LowTriggered = true;
 								}
 							}
 						}
@@ -383,6 +395,10 @@ namespace NinjaTrader.NinjaScript.Indicators
 						if (FullBar[0].delta >=0 && FullBar[1].delta >=0 && FullBar[2].delta >=0  ) { 
 							// diagonal agression at lowest level
 							// low bid < low + 1 offer
+												
+			/// **********************     REJECCTOR HIGH      *********************
+			
+							
 							if (FullBar[1].bidVolume  > FullBar[0].askVolume )  { 
 								if ( ShowPriceRejector ) { 
 									RemoveDrawObject("Exhastionh"+CurrentBar);
@@ -393,6 +409,9 @@ namespace NinjaTrader.NinjaScript.Indicators
 									Draw.Text(this, "RejectorHigh"+Volume[0], message, 0, High[0] + 2 * TickSize, Brushes.Red);
 									PriceRejector[PriceRejector.Count - 1] = -1;
 									lastPRhigh = Volume[0];
+									if ( !HighTriggered)
+										sendAlert( message: "Price Rejector at High", sound: AString);
+									HighTriggered = true;
 								}	
 							}
 						}
@@ -408,6 +427,12 @@ namespace NinjaTrader.NinjaScript.Indicators
 	        }
 	        catch{}
 			if ( debug ) { Print("end of func" );}
+		}
+		
+		private void sendAlert(string message, string sound ) {
+			message += " " + Bars.Instrument.MasterInstrument.Name;
+			Alert("myAlert"+CurrentBar, Priority.High, message, NinjaTrader.Core.Globals.InstallDir+@"\sounds\"+ sound,10, Brushes.Black, Brushes.Yellow);  
+			if (CurrentBar < Count -2) return;
 		}
 		
 		#region Properties
@@ -436,6 +461,11 @@ namespace NinjaTrader.NinjaScript.Indicators
 		[Range(0.1, double.MaxValue)]
 		[Display(Name="Opacity", Order=5, GroupName="Parameters")]
 		public double Opacity
+		{ get; set; }
+		
+		[NinjaScriptProperty]
+		[Display(Name="Sound Name", Order=6, GroupName="Parameters")]
+		public string AString
 		{ get; set; }
 		
 //		[NinjaScriptProperty]
@@ -526,18 +556,18 @@ namespace NinjaTrader.NinjaScript.Indicators
 	public partial class Indicator : NinjaTrader.Gui.NinjaScript.IndicatorRenderBase
 	{
 		private PriceRejectorCurrent[] cachePriceRejectorCurrent;
-		public PriceRejectorCurrent PriceRejectorCurrent(bool showPriceRejector, bool showMaxDelta, bool showExhaustion, bool showUB, double opacity, int minutes)
+		public PriceRejectorCurrent PriceRejectorCurrent(bool showPriceRejector, bool showMaxDelta, bool showExhaustion, bool showUB, double opacity, string aString, int minutes)
 		{
-			return PriceRejectorCurrent(Input, showPriceRejector, showMaxDelta, showExhaustion, showUB, opacity, minutes);
+			return PriceRejectorCurrent(Input, showPriceRejector, showMaxDelta, showExhaustion, showUB, opacity, aString, minutes);
 		}
 
-		public PriceRejectorCurrent PriceRejectorCurrent(ISeries<double> input, bool showPriceRejector, bool showMaxDelta, bool showExhaustion, bool showUB, double opacity, int minutes)
+		public PriceRejectorCurrent PriceRejectorCurrent(ISeries<double> input, bool showPriceRejector, bool showMaxDelta, bool showExhaustion, bool showUB, double opacity, string aString, int minutes)
 		{
 			if (cachePriceRejectorCurrent != null)
 				for (int idx = 0; idx < cachePriceRejectorCurrent.Length; idx++)
-					if (cachePriceRejectorCurrent[idx] != null && cachePriceRejectorCurrent[idx].ShowPriceRejector == showPriceRejector && cachePriceRejectorCurrent[idx].ShowMaxDelta == showMaxDelta && cachePriceRejectorCurrent[idx].ShowExhaustion == showExhaustion && cachePriceRejectorCurrent[idx].ShowUB == showUB && cachePriceRejectorCurrent[idx].Opacity == opacity && cachePriceRejectorCurrent[idx].Minutes == minutes && cachePriceRejectorCurrent[idx].EqualsInput(input))
+					if (cachePriceRejectorCurrent[idx] != null && cachePriceRejectorCurrent[idx].ShowPriceRejector == showPriceRejector && cachePriceRejectorCurrent[idx].ShowMaxDelta == showMaxDelta && cachePriceRejectorCurrent[idx].ShowExhaustion == showExhaustion && cachePriceRejectorCurrent[idx].ShowUB == showUB && cachePriceRejectorCurrent[idx].Opacity == opacity && cachePriceRejectorCurrent[idx].AString == aString && cachePriceRejectorCurrent[idx].Minutes == minutes && cachePriceRejectorCurrent[idx].EqualsInput(input))
 						return cachePriceRejectorCurrent[idx];
-			return CacheIndicator<PriceRejectorCurrent>(new PriceRejectorCurrent(){ ShowPriceRejector = showPriceRejector, ShowMaxDelta = showMaxDelta, ShowExhaustion = showExhaustion, ShowUB = showUB, Opacity = opacity, Minutes = minutes }, input, ref cachePriceRejectorCurrent);
+			return CacheIndicator<PriceRejectorCurrent>(new PriceRejectorCurrent(){ ShowPriceRejector = showPriceRejector, ShowMaxDelta = showMaxDelta, ShowExhaustion = showExhaustion, ShowUB = showUB, Opacity = opacity, AString = aString, Minutes = minutes }, input, ref cachePriceRejectorCurrent);
 		}
 	}
 }
@@ -546,14 +576,14 @@ namespace NinjaTrader.NinjaScript.MarketAnalyzerColumns
 {
 	public partial class MarketAnalyzerColumn : MarketAnalyzerColumnBase
 	{
-		public Indicators.PriceRejectorCurrent PriceRejectorCurrent(bool showPriceRejector, bool showMaxDelta, bool showExhaustion, bool showUB, double opacity, int minutes)
+		public Indicators.PriceRejectorCurrent PriceRejectorCurrent(bool showPriceRejector, bool showMaxDelta, bool showExhaustion, bool showUB, double opacity, string aString, int minutes)
 		{
-			return indicator.PriceRejectorCurrent(Input, showPriceRejector, showMaxDelta, showExhaustion, showUB, opacity, minutes);
+			return indicator.PriceRejectorCurrent(Input, showPriceRejector, showMaxDelta, showExhaustion, showUB, opacity, aString, minutes);
 		}
 
-		public Indicators.PriceRejectorCurrent PriceRejectorCurrent(ISeries<double> input , bool showPriceRejector, bool showMaxDelta, bool showExhaustion, bool showUB, double opacity, int minutes)
+		public Indicators.PriceRejectorCurrent PriceRejectorCurrent(ISeries<double> input , bool showPriceRejector, bool showMaxDelta, bool showExhaustion, bool showUB, double opacity, string aString, int minutes)
 		{
-			return indicator.PriceRejectorCurrent(input, showPriceRejector, showMaxDelta, showExhaustion, showUB, opacity, minutes);
+			return indicator.PriceRejectorCurrent(input, showPriceRejector, showMaxDelta, showExhaustion, showUB, opacity, aString, minutes);
 		}
 	}
 }
@@ -562,14 +592,14 @@ namespace NinjaTrader.NinjaScript.Strategies
 {
 	public partial class Strategy : NinjaTrader.Gui.NinjaScript.StrategyRenderBase
 	{
-		public Indicators.PriceRejectorCurrent PriceRejectorCurrent(bool showPriceRejector, bool showMaxDelta, bool showExhaustion, bool showUB, double opacity, int minutes)
+		public Indicators.PriceRejectorCurrent PriceRejectorCurrent(bool showPriceRejector, bool showMaxDelta, bool showExhaustion, bool showUB, double opacity, string aString, int minutes)
 		{
-			return indicator.PriceRejectorCurrent(Input, showPriceRejector, showMaxDelta, showExhaustion, showUB, opacity, minutes);
+			return indicator.PriceRejectorCurrent(Input, showPriceRejector, showMaxDelta, showExhaustion, showUB, opacity, aString, minutes);
 		}
 
-		public Indicators.PriceRejectorCurrent PriceRejectorCurrent(ISeries<double> input , bool showPriceRejector, bool showMaxDelta, bool showExhaustion, bool showUB, double opacity, int minutes)
+		public Indicators.PriceRejectorCurrent PriceRejectorCurrent(ISeries<double> input , bool showPriceRejector, bool showMaxDelta, bool showExhaustion, bool showUB, double opacity, string aString, int minutes)
 		{
-			return indicator.PriceRejectorCurrent(input, showPriceRejector, showMaxDelta, showExhaustion, showUB, opacity, minutes);
+			return indicator.PriceRejectorCurrent(input, showPriceRejector, showMaxDelta, showExhaustion, showUB, opacity, aString, minutes);
 		}
 	}
 }
